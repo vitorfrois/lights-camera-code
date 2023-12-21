@@ -19,6 +19,7 @@ class ObjHelper:
         vertices = []
         texture_coords = []
         faces = []
+        normals = []
 
         material = None
 
@@ -28,15 +29,17 @@ class ObjHelper:
             values = line.split() # quebra a linha por espaço
             if not values: continue
 
-
             ### recuperando vertices
             if values[0] == 'v':
                 vertices.append(values[1:4])
 
-
             ### recuperando coordenadas de textura
             elif values[0] == 'vt':
                 texture_coords.append(values[1:3])
+
+            ### recuperando vertices
+            if values[0] == 'vn':
+                normals.append(values[1:4])
 
             ### recuperando faces 
             elif values[0] in ('usemtl', 'usemat'):
@@ -44,20 +47,24 @@ class ObjHelper:
             elif values[0] == 'f':
                 face = []
                 face_texture = []
+                face_normals = []
                 for v in values[1:]:
                     w = v.split('/')
                     face.append(int(w[0]))
+                    face_normals.append(int(w[2]))
                     if len(w) >= 2 and len(w[1]) > 0:
                         face_texture.append(int(w[1]))
                     else:
                         face_texture.append(0)
+                
+                faces.append((face, face_texture, face_normals, material))
 
-                faces.append((face, face_texture, material))
 
         model = {}
         model['vertices'] = vertices
         model['texture'] = texture_coords
         model['faces'] = faces
+        model['normals'] = normals
 
         return model
 

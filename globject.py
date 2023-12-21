@@ -35,6 +35,7 @@ class GLObject:
         self.vertices = []
         self.list_vertices = []
         self.list_texture = []
+        self.list_normals = []
         self.center = [0, 0, 0]
         self.matrix = Matrix.get_identity()
 
@@ -55,6 +56,11 @@ class GLObject:
         self.texture = np.zeros(total_textures, [("position", np.float32, 2)])
         self.texture['position'] = list_texture
 
+    def init_normals(self, list_normals):
+        total_normals = len(list_normals)
+        self.normals = np.zeros(total_normals, [("position", np.float32, 3)])
+        self.normals['position'] = list_normals
+
     def init_random_triangle(self):
         self.list_vertices = np.random.rand(6, 3)
         self.n_vertices = len(self.list_vertices)
@@ -70,6 +76,8 @@ class GLObject:
                 self.list_vertices.append( modelo['vertices'][vertice_id-1] )
             for texture_coord in face[1]:
                 self.list_texture.append( modelo['texture'][texture_coord-1] )
+            for normal_id in face[2]:
+                self.list_normals.append( modelo['normals'][normal_id-1] )
 
         self.number = glGenTextures(1)
         self.n_vertices = len(self.list_vertices)
@@ -83,6 +91,8 @@ class GLObject:
 
         self.init_vertices(self.list_vertices)
         self.init_texture(self.list_texture)
+        self.init_normals(self.list_normals)
+        
         logger.info(f'Texture ID: {self.number}, ')
 
     def send_obj_vertices(self, env):

@@ -3,6 +3,7 @@ import glfw
 import OpenGL.GL.shaders
 import math
 import logging
+import glm
 
 import numpy as np
 
@@ -19,24 +20,52 @@ offset = ctypes.c_void_p(0)
 vertex_code = """
         attribute vec3 position;
         attribute vec2 texture_coord;
+        attribute vec3 normals;
+        
+       
         varying vec2 out_texture;
+        varying vec3 out_fragPos;
+        varying vec3 out_normal;
                 
-        uniform mat4 mat_transform;        
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 projection;        
         
         void main(){
-            gl_Position = mat_transform * vec4(position,1.0);
+            gl_Position = projection * view * model * vec4(position,1.0);
             out_texture = vec2(texture_coord);
+            out_fragPos = vec3(  model * vec4(position, 1.0));
+            out_normal = vec3( model *vec4(normals, 1.0));            
         }
         """
 
 fragment_code = """
-        uniform vec4 color;
-        varying vec2 out_texture;
+
+        uniform vec3 lightPos; // define coordenadas de posicao da luz
+        uniform float ka; // coeficiente de reflexao ambiente
+        uniform float kd; // coeficiente de reflexao difusa
+        
+        vec3 lightColor = vec3(1.0, 1.0, 1.0);
+
+        varying vec2 out_texture; // recebido do vertex shader
+        varying vec3 out_normal; // recebido do vertex shader
+        varying vec3 out_fragPos; // recebido do vertex shader
         uniform sampler2D samplerTexture;
         
+        
+        
         void main(){
+            vec3 ambient = ka * lightColor;             
+        
+            vec3 norm = normalize(out_normal); // normaliza vetores perpendiculares
+            vec3 lightDir = normalize(lightPos - out_fragPos); // direcao da luz
+            float diff = max(dot(norm, lightDir), 0.0); // verifica limite angular (entre 0 e 90)
+            vec3 diffuse = kd * diff * lightColor; // iluminacao difusa
+            
             vec4 texture = texture2D(samplerTexture, out_texture);
-            gl_FragColor = texture;
+            vec4 result = vec4((ambient + diffuse),1.0) * texture; // aplica iluminacao
+            gl_FragColor = result;
+
         }
         """
 
@@ -45,6 +74,7 @@ class Environment:
     program: None
     loc: None
     texture_loc: None
+    normal_loc: None
     buffer: None
     total_vertices: int
     n_objects: int
@@ -58,6 +88,7 @@ class Environment:
         self.obj_list = []
         self.list_vertices = []
         self.list_texture = []
+        self.list_normals = []
 
         glfw.init()
         glfw.window_hint(glfw.VISIBLE, glfw.FALSE);
@@ -95,7 +126,7 @@ class Environment:
         # textures = glGenTextures(qtd_texturas)
 
         # Request a buffer slot from GPU
-        self.buffer = glGenBuffers(10)
+        self.buffer = glGenBuffers(4)
         self.buffer_counter = 0
         # Make this buffer the default one
 
@@ -104,6 +135,18 @@ class Environment:
 
         self.texture_loc = glGetAttribLocation(self.program, "texture_coord")
         glEnableVertexAttribArray(self.texture_loc)
+
+        self.normal_loc = glGetAttribLocation(self.program, "normals")
+        glEnableVertexAttribArray(self.normal_loc)
+
+        loc_ka = glGetUniformLocation(self.program, "ka") # recuperando localizacao da variavel ka na GPU
+        glUniform1f(loc_ka, 0.5) ### envia ka pra gpu
+        
+        loc_kd = glGetUniformLocation(self.program, "kd") # recuperando localizacao da variavel ka na GPU
+        glUniform1f(loc_kd, 0.5) ### envia kd pra gpu 
+
+        loc_light_pos = glGetUniformLocation(self.program, "lightPos") # recuperando localizacao da variavel lightPos na GPU
+        glUniform3f(loc_light_pos, -1.5, 1.7, 2.5) ### posicao da fonte de luz
 
         glEnable(GL_DEPTH_TEST) 
         
@@ -131,7 +174,10 @@ class Environment:
     def get_texture_loc(self):
         return self.texture_loc
 
-    def get_list_objects(self):
+    def get_normal_loc(self):
+        return self.normal_loc
+
+    def get_list_objects(self): 
         return self.obj_list
 
     def get_vertices(self):
@@ -146,6 +192,9 @@ class Environment:
     def set_key_callback(self, key_event_function):
         glfw.set_key_callback(self.window, key_event_function)
 
+    def set_mouse_callback(self, key_event_function):
+        glfw.set_cursor_pos_callback(self.window, key_event_function)
+
     def show_window(self):
         glfw.show_window(self.window)
 
@@ -155,13 +204,15 @@ class Environment:
         for v in obj.vertices['position']:
             self.list_vertices.append(v)
 
-
         for t in obj.texture['position']:
             self.list_texture.append(t)
             
+        for n in obj.normals['position']:
+            self.list_normals.append(n)
+
         loc = self.get_loc()
-        center_obj_mat = obj.center_obj()
-        glUniformMatrix4fv(loc, 1, GL_TRUE, center_obj_mat)
+        # center_obj_mat = obj.center_obj()
+        # glUniformMatrix4fv(loc, 1, GL_TRUE, center_obj_mat)
         logger.info(f'{obj.start}, {obj.n_vertices}')
         
         self.obj_list.append(obj)
@@ -191,3 +242,17 @@ class Environment:
         texture_loc = self.get_texture_loc()
         glVertexAttribPointer(texture_loc, 2, GL_FLOAT, False, stride, offset)
         glEnableVertexAttribArray(texture_loc)
+
+    def send_normals(self):
+        normals = np.zeros(len(self.list_normals), [("position", np.float32, 3)]) # três coordenadas
+        normals['position'] = self.list_normals
+
+        # Upload coordenadas normals de cada vertice
+        glBindBuffer(GL_ARRAY_BUFFER, buffer[2])
+        glBufferData(GL_ARRAY_BUFFER, normals.nbytes, normals, GL_STATIC_DRAW)
+        stride = normals.strides[0]
+
+        normal_loc = self.get_normal_loc()
+        glVertexAttribPointer(normal_loc, 3, GL_FLOAT, False, stride, offset)
+        glEnableVertexAttribArray(normal_loc)
+
