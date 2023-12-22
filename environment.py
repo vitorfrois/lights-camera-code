@@ -69,6 +69,37 @@ fragment_code = """
         }
         """
 
+skybox_vertex_shader_1 = """
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+
+    out vec3 TexCoords;
+
+    uniform mat4 projection;
+    uniform mat4 view;
+
+    void main()
+    {
+        TexCoords = aPos;
+        gl_Position = projection * view * vec4(aPos, 1.0);
+    }
+"""
+
+skybox_vertex_shader_2 = """
+#version 330 core
+out vec4 FragColor;
+
+in vec3 TexCoords;
+
+uniform samplerCube skybox;
+
+void main()
+{    
+    FragColor = texture(skybox, TexCoords);
+}
+"""
+
+
 class Environment:
     window: None
     program: None
@@ -92,7 +123,7 @@ class Environment:
 
         glfw.init()
         glfw.window_hint(glfw.VISIBLE, glfw.FALSE);
-        self.window = glfw.create_window(x, y, "Trabalho 1", None, None)
+        self.window = glfw.create_window(x, y, "Trabalho 2", None, None)
         glfw.make_context_current(self.window)
 
         # Request a program and shader slots from GPU
@@ -210,7 +241,7 @@ class Environment:
         for n in obj.normals['position']:
             self.list_normals.append(n)
 
-        loc = self.get_loc()
+        # loc = self.get_loc()
         # center_obj_mat = obj.center_obj()
         # glUniformMatrix4fv(loc, 1, GL_TRUE, center_obj_mat)
         logger.info(f'{obj.start}, {obj.n_vertices}')
@@ -256,3 +287,42 @@ class Environment:
         glVertexAttribPointer(normal_loc, 3, GL_FLOAT, False, stride, offset)
         glEnableVertexAttribArray(normal_loc)
 
+    def set_cubemap(self, directory: str):
+        """
+        Files in directory should be named as
+        right.jpg
+        left.jpg
+        top.jpg
+        bottom.jpg
+        back.jpg
+        front.jpg
+        """
+
+        number = glGenTextures(1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, number);
+
+        cube_images_filename_list = [
+            "right.jpg",
+            "left.jpg",
+            "top.jpg",
+            "bottom.jpg",
+            "back.jpg",
+            "front.jpg"
+        ]
+
+        for i in range(6):
+            filename = cube_images_filename_list[i]
+            file_path = f"resources/{directory}/{filename}"
+        
+            img = Image.open(file_path)
+            img_width = img.size[0]
+            img_height = img.size[1]
+            img_format = GL_RGB if img.mode == "RGB" else GL_RGBA
+            image_data = img.tobytes("raw", "RGB", 0, -1)
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, img_width, img_height, 0, img_format, GL_UNSIGNED_BYTE, image_data)
+        
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)  

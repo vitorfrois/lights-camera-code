@@ -22,6 +22,16 @@ polygonal_mode = False
 list_obj = []
 GLFW_PRESS = 1
 
+angle = 45.0
+
+r_x = 1.0; r_y = 1.0; r_z = 0.0;
+
+# translacao
+t_x = 0.0; t_y = 0.0; t_z = 0.0;
+
+# escala
+s_x = 0.1; s_y = 0.1; s_z = 0.1;
+
 linear_magnification = True
 object_selection = 1
 
@@ -32,17 +42,17 @@ cameraUp    = glm.vec3(0.0,  1.0,  0.0)
 def key_event(window,key,scancode,action,mods):
     global cameraPos, cameraFront, cameraUp, polygonal_mode
     
-    cameraSpeed = 0.05
-    if key == 87 and (action==1 or action==2): # tecla W
+    cameraSpeed = 0.5
+    if key == 87: # tecla W
         cameraPos += cameraSpeed * cameraFront
     
-    if key == 83 and (action==1 or action==2): # tecla S
+    if key == 83: # tecla S
         cameraPos -= cameraSpeed * cameraFront
     
-    if key == 65 and (action==1 or action==2): # tecla A
+    if key == 65: # tecla A
         cameraPos -= glm.normalize(glm.cross(cameraFront, cameraUp)) * cameraSpeed
         
-    if key == 68 and (action==1 or action==2): # tecla D
+    if key == 68: # tecla D
         cameraPos += glm.normalize(glm.cross(cameraFront, cameraUp)) * cameraSpeed
 
     if key == 80 and action == GLFW_PRESS:
@@ -51,14 +61,14 @@ def key_event(window,key,scancode,action,mods):
     if key == 86 and action == GLFW_PRESS:
         linear_magnification = not linear_magnification
 
-    info_message = f"Pressed key: {key}"
-    logging.info(info_message)
+    # info_message = f"Pressed key: {key}"
+    # logging.info(info_message)
 
 firstMouse = True
 yaw = -90.0 
 pitch = 0.0
-lastX =  400
-lastY =  400
+lastX =  600
+lastY =  450
 
 def mouse_event(window, xpos, ypos):
     global firstMouse, cameraFront, yaw, pitch, lastX, lastY
@@ -90,8 +100,6 @@ def mouse_event(window, xpos, ypos):
     cameraFront = glm.normalize(front)
 
 
-
-
 def main():
     env = Environment(1200, 900)
     env.set_key_callback(key_event)
@@ -105,6 +113,7 @@ def main():
     box = GLObject('caixa')
     box.init_obj()
     env.add_object(box)
+    box.draw_obj()
 
     # basset = GLObject('basset')
     # basset.init_obj()
@@ -113,10 +122,13 @@ def main():
     container = GLObject('container')
     container.init_obj()
     env.add_object(container)
+    container.draw_obj()
 
-    geladeira = GLObject('coffee')
-    geladeira.init_obj()
-    env.add_object(geladeira)
+    coffee = GLObject('coffee')
+    coffee.init_obj()
+    env.add_object(coffee)
+    coffee.draw_obj()
+
 
     # monstro = GLObject('monstro')
     # monstro.init_obj()
@@ -128,32 +140,18 @@ def main():
     global polygonal_mode
     global linear_magnification
 
-    # MOVE
-    x_inc = 0.0
-    y_inc = 0.0
-
-    # ROTATE
-    yr_inc = 0.0
-    zr_inc = 0.0
-
-    # SCALE
-    s_inc = 1.0
-
-    object_selection = 1
-
     for obj in env.get_list_objects():
         logger.info(obj)
 
     env.send_vertices()
     env.send_texture()
 
-
     while not glfw.window_should_close(env.window):
         glfw.poll_events() 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         loc_light_pos = glGetUniformLocation(env.program, "lightPos") 
-        glUniform3f(loc_light_pos, 1.0, 0.0, 0.0)
+        glUniform3f(loc_light_pos, 3.0, 3.0, 3.0)
         glClearColor(0.2, 0.2, 0.2, 1.0)
 
 
@@ -169,48 +167,30 @@ def main():
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 
-
-        # Bound increases
-        if x_inc > 0.05: x_inc = 0.05
-        if y_inc > 0.05: y_inc = 0.05
-        if x_inc < -0.05: x_inc = -0.05
-        if y_inc < -0.05: y_inc = -0.05
-
-        if yr_inc > 20: yr_inc = 20
-        if zr_inc > 20: zr_inc = 20
-        if yr_inc < -20: yr_inc = -20
-        if zr_inc < -20: zr_inc = -20
-
         # Get All Objects
         list_obj = env.get_list_objects()
         
         loc = env.get_loc()
 
+        # Use model matrix to render objects
+        mat_model = Matrix.model(angle, r_x, r_y, r_z, t_x, t_y, t_z, s_x, s_y, s_z)
+        loc_model = glGetUniformLocation(env.program, "model")
+        glUniformMatrix4fv(loc_model, 1, GL_FALSE, mat_model)
         for obj_to_render in list_obj:
-            # center = obj_to_render.get_center()
-            # y_rotation = Matrix.get_y_inplace_rotation(center, yr_inc)
-            # z_rotation = Matrix.get_x_inplace_rotation(center, zr_inc)
-            # scale = Matrix.get_scale(center, s_inc)
-            # translation = Matrix.get_translation(x_inc, y_inc)
-            # mat_transform = Matrix.multiply(y_rotation, z_rotation, scale, translation)
-
-            # final_matrix = obj_to_render.get_matrix()
-            # obj_to_render.valid_transformation(mat_transform)
-            # final_matrix = Matrix.multiply(mat_transform, final_matrix)
-            # obj_to_render.set_matrix(final_matrix)
-
-            glUniformMatrix4fv(loc, 1, GL_TRUE, Matrix.get_identity())
             obj_to_render.draw_obj()
 
+        # Send view and projection matrices        
         mat_view = Matrix.view(cameraPos, cameraFront, cameraUp)
         loc_view = glGetUniformLocation(env.program, "view")
-        glUniformMatrix4fv(loc_view, 1, GL_FALSE, mat_view)
+        glUniformMatrix4fv(loc_view, 1, GL_TRUE, mat_view)
 
         mat_projection = Matrix.projection(1200, 900)
         loc_projection = glGetUniformLocation(env.program, "projection")
-        glUniformMatrix4fv(loc_projection, 1, GL_FALSE, mat_projection)  
+        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, mat_projection)  
 
         glfw.swap_buffers(env.window)
+
+        logger.info(cameraPos)
 
     glfw.terminate()
 
