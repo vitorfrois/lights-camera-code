@@ -14,6 +14,7 @@ from globject import GLObject
 from objhelper import ObjHelper
 from environment import Environment
 from logger_helper import LoggerHelper
+from skybox import Skybox
 
 # Defines
 logger = LoggerHelper.get_logger(__name__)
@@ -110,6 +111,11 @@ def main():
 
     # Adding objects
 
+    # skybox = Skybox('skybox')
+    # skybox.init_obj('cube')
+    # env.add_skybox(skybox)
+    # skybox.draw_obj()
+
     box = GLObject('caixa')
     box.init_obj()
     env.add_object(box)
@@ -119,15 +125,15 @@ def main():
     # basset.init_obj()
     # env.add_object(basset)
 
-    container = GLObject('container')
-    container.init_obj()
-    env.add_object(container)
-    container.draw_obj()
+    # container = GLObject('container')
+    # container.init_obj()
+    # env.add_object(container)
+    # container.draw_obj()
 
-    coffee = GLObject('coffee')
-    coffee.init_obj()
-    env.add_object(coffee)
-    coffee.draw_obj()
+    # coffee = GLObject('coffee')
+    # coffee.init_obj()
+    # env.add_object(coffee)
+    # coffee.draw_obj()
 
 
     # monstro = GLObject('monstro')

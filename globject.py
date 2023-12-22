@@ -8,13 +8,13 @@ from dataclasses import dataclass
 from OpenGL.GL import *
 from matrix import Matrix
 from logger_helper import LoggerHelper
+from objhelper import ObjHelper
 
 
 TEXTURES_EXT = ["tif", "jpg", "png"]
 logger = LoggerHelper.get_logger(__name__)
 offset = ctypes.c_void_p(0)
 
-from objhelper import ObjHelper
 
 class GLObject:
     name: str
@@ -49,6 +49,7 @@ class GLObject:
     def init_vertices(self, list_vertices):
         total_vertices = len(list_vertices)
         self.vertices = np.zeros(total_vertices, [("position", np.float32, 3)])
+        print(list_vertices)
         self.vertices['position'] = list_vertices
 
     def init_texture(self, list_texture):

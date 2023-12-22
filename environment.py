@@ -12,6 +12,7 @@ from globject import GLObject
 from objhelper import ObjHelper
 from logger_helper import LoggerHelper
 from matrix import Matrix
+from skybox import Skybox
 
 logger = LoggerHelper.get_logger(__name__)
 offset = ctypes.c_void_p(0)
@@ -229,8 +230,20 @@ class Environment:
     def show_window(self):
         glfw.show_window(self.window)
 
+    def add_skybox(self, obj: Skybox):
+        obj.start = self.total_vertices
+
+        print(obj.vertices)
+        for v in obj.vertices['position']:
+            self.list_vertices.append(v)
+
+        self.obj_list.append(obj)
+        self.total_vertices += obj.n_vertices
+        self.n_objects += 1
+
     def add_object(self, obj: GLObject):
         obj.start = self.total_vertices
+        print(obj.vertices)
 
         for v in obj.vertices['position']:
             self.list_vertices.append(v)
@@ -287,42 +300,4 @@ class Environment:
         glVertexAttribPointer(normal_loc, 3, GL_FLOAT, False, stride, offset)
         glEnableVertexAttribArray(normal_loc)
 
-    def set_cubemap(self, directory: str):
-        """
-        Files in directory should be named as
-        right.jpg
-        left.jpg
-        top.jpg
-        bottom.jpg
-        back.jpg
-        front.jpg
-        """
-
-        number = glGenTextures(1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, number);
-
-        cube_images_filename_list = [
-            "right.jpg",
-            "left.jpg",
-            "top.jpg",
-            "bottom.jpg",
-            "back.jpg",
-            "front.jpg"
-        ]
-
-        for i in range(6):
-            filename = cube_images_filename_list[i]
-            file_path = f"resources/{directory}/{filename}"
-        
-            img = Image.open(file_path)
-            img_width = img.size[0]
-            img_height = img.size[1]
-            img_format = GL_RGB if img.mode == "RGB" else GL_RGBA
-            image_data = img.tobytes("raw", "RGB", 0, -1)
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, img_width, img_height, 0, img_format, GL_UNSIGNED_BYTE, image_data)
-        
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)  
+   
