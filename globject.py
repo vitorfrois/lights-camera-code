@@ -28,8 +28,12 @@ class GLObject:
     center: dict
     surrounding_polygon: list
     matrix: np.array
+    ka: float
+    kd: float
+    ks: float
+    ns: float
 
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
         self.name = name
         self.texture = []
         self.vertices = []
@@ -37,8 +41,13 @@ class GLObject:
         self.list_texture = []
         self.list_normals = []
         self.center = [0, 0, 0]
-        self.matrix = Matrix.get_identity()
+        self.set_matrix(Matrix.model(**kwargs))
 
+    def set_lightning(self, ka, kd, ks, ns):
+        self.ka = ka
+        self.kd = kd
+        self.ks = ks
+        self.ns = ns
 
     def __str__(self):
         return f'Object: {self.name}'
@@ -49,7 +58,6 @@ class GLObject:
     def init_vertices(self, list_vertices):
         total_vertices = len(list_vertices)
         self.vertices = np.zeros(total_vertices, [("position", np.float32, 3)])
-        print(list_vertices)
         self.vertices['position'] = list_vertices
 
     def init_texture(self, list_texture):
@@ -177,7 +185,19 @@ class GLObject:
         self.matrix = center_matrix
         return center_matrix
 
-    def draw_obj(self):
+    def draw_obj(self, program):
+        loc_ka = glGetUniformLocation(program, "ka") # recuperando localizacao da variavel ka na GPU
+        glUniform1f(loc_ka, self.ka) ### envia ka pra gpu
+        
+        loc_kd = glGetUniformLocation(program, "kd") # recuperando localizacao da variavel kd na GPU
+        glUniform1f(loc_kd, self.kd) ### envia kd pra gpu    
+        
+        loc_ks = glGetUniformLocation(program, "ks") # recuperando localizacao da variavel ks na GPU
+        glUniform1f(loc_ks, self.ks) ### envia ks pra gpu        
+        
+        loc_ns = glGetUniformLocation(program, "ns") # recuperando localizacao da variavel ns na GPU
+        glUniform1f(loc_ns, self.ns) ### envia ns pra gpu
+
         glEnableVertexAttribArray(0)    
         glBindTexture(GL_TEXTURE_2D, self.number)
         glDrawArrays(GL_TRIANGLES, self.start, self.n_vertices) ## renderizando
@@ -199,10 +219,10 @@ class GLObject:
             new_v = reshaped_transform @ v
             new_list_vertices.append(new_v)
 
-        maxv = np.max(new_list_vertices)
-        minv = np.min(new_list_vertices)
-        if (maxv-1) >= 0.001 or (minv + 1.0) <= 0:
-            return False
+        # maxv = np.max(new_list_vertices)
+        # minv = np.min(new_list_vertices)
+        # if (maxv-1) >= 0.001 or (minv + 1.0) <= 0:
+        #     return False
         
         # if the transformation is valid
         self.center = reshaped_transform @ self.center # move center
