@@ -57,9 +57,9 @@ class Shader:
             print(error)
             raise RuntimeError("Erro de compilacao do Shader")
 
-    def set_mat4(self, name: str, matrix):
+    def set_mat4(self, name: str, matrix, gl_bool = GL_TRUE):
         loc = glGetUniformLocation(self.ID, name)
-        glUniformMatrix4fv(loc, 1, GL_TRUE, matrix)
+        glUniformMatrix4fv(loc, 1, gl_bool, matrix)
 
     def set_3float(self, name: str, x, y, z):
         loc = glGetUniformLocation(self.ID, name)
@@ -68,6 +68,10 @@ class Shader:
     def set_1float(self, name: str, x):
         loc = glGetUniformLocation(self.ID, name) # recuperando localizacao da variavel ka na GPU
         glUniform1f(loc, x)
+
+    def set_1int(self, name: str, x):
+        loc = glGetUniformLocation(self.ID, name) # recuperando localizacao da variavel ka na GPU
+        glUniform1i(loc, x)
 
 
     

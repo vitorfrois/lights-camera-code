@@ -14,9 +14,9 @@ from PIL import Image
 SKYBOX_VERTICES = [
     ['-1.0',  '1.0', '-1.0'],
     ['-1.0', '-1.0', '-1.0'],
-     ['1.0', '-1.0', '-1.0'],
-     ['1.0', '-1.0', '-1.0'],
-     ['1.0',  '1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
+    [ '1.0',  '1.0', '-1.0'],
     ['-1.0',  '1.0', '-1.0'],
     ['-1.0', '-1.0',  '1.0'],
     ['-1.0', '-1.0', '-1.0'],
@@ -24,30 +24,30 @@ SKYBOX_VERTICES = [
     ['-1.0',  '1.0', '-1.0'],
     ['-1.0',  '1.0',  '1.0'],
     ['-1.0', '-1.0',  '1.0'],   
-     ['1.0', '-1.0', '-1.0'],
-     ['1.0', '-1.0',  '1.0'],
-     ['1.0',  '1.0',  '1.0'],
-     ['1.0',  '1.0',  '1.0'],
-     ['1.0',  '1.0', '-1.0'],
-     ['1.0', '-1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
+    [ '1.0', '-1.0',  '1.0'],
+    [ '1.0',  '1.0',  '1.0'],
+    [ '1.0',  '1.0',  '1.0'],
+    [ '1.0',  '1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
     ['-1.0', '-1.0',  '1.0'],
     ['-1.0',  '1.0',  '1.0'],
-     ['1.0',  '1.0',  '1.0'],
-     ['1.0',  '1.0',  '1.0'],
-     ['1.0', '-1.0',  '1.0'],
+    [ '1.0',  '1.0',  '1.0'],
+    [ '1.0',  '1.0',  '1.0'],
+    [ '1.0', '-1.0',  '1.0'],
     ['-1.0', '-1.0',  '1.0'],
     ['-1.0',  '1.0', '-1.0'],
-     ['1.0',  '1.0', '-1.0'],
-     ['1.0',  '1.0',  '1.0'],
-     ['1.0',  '1.0',  '1.0'],
+    [ '1.0',  '1.0', '-1.0'],
+    [ '1.0',  '1.0',  '1.0'],
+    [ '1.0',  '1.0',  '1.0'],
     ['-1.0',  '1.0',  '1.0'],
     ['-1.0',  '1.0', '-1.0'],
     ['-1.0', '-1.0', '-1.0'],
     ['-1.0', '-1.0',  '1.0'],
-     ['1.0', '-1.0', '-1.0'],
-     ['1.0', '-1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
+    [ '1.0', '-1.0', '-1.0'],
     ['-1.0', '-1.0',  '1.0'],
-     ['1.0', '-1.0',  '1.0']
+    [ '1.0', '-1.0',  '1.0']
 ]
 
 
@@ -89,6 +89,9 @@ class Skybox(GLObject):
             file_path = f"resources/{directory}/{filename}"
         
             img = Image.open(file_path)
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+
             img_width = img.size[0]
             img_height = img.size[1]
             img_format = GL_RGB if img.mode == "RGB" else GL_RGBA
@@ -103,13 +106,16 @@ class Skybox(GLObject):
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)  
 
     def draw_obj(self, program):
-        glEnable(GL_TEXTURE_2D)
-        glDepthMask(GL_FALSE)
-        glEnableVertexAttribArray(0)    
+        glDepthFunc(GL_LEQUAL)
+        glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.number)
         glDrawArrays(GL_TRIANGLES, self.start, self.n_vertices) ## renderizando
+        glBindVertexArray(0)
+        glDepthFunc(GL_LESS)
+        # glEnableVertexAttribArray(0)    
+        # print(self.start, self.n_vertices)
         # glBindTexture(GL_TEXTURE_2D, 0)
-        glDepthMask(GL_TRUE)
+        # glDepthMask(GL_TRUE)
 
 # import OpenGL
 # OpenGL.FORWARD_COMPATIBLE_ONLY = True 

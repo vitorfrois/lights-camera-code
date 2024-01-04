@@ -45,12 +45,14 @@ class Environment:
         glfw.window_hint(glfw.VISIBLE, glfw.FALSE);
         self.window = glfw.create_window(x, y, "Trabalho 2", None, None)
         glfw.make_context_current(self.window)
-
+        
         # Request a program and shader slots from GPU
+        self.skybox_shader = Shader('shaders/skybox_shader_vs', 'shaders/skybox_shader_fs')
+        self.skybox_shader.use()
+        self.skybox_shader.set_1int("skybox", 0)
+    
         self.main_shader = Shader('shaders/main_shader_vs', 'shaders/main_shader_fs')
         self.main_shader.use()
-
-        self.skybox_shader = Shader('shaders/skybox_shader_vs', 'shaders/skybox_shader_fs')
 
         # Init textures
         glEnable(GL_TEXTURE_2D)

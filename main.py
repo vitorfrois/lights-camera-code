@@ -177,7 +177,6 @@ def main():
         env.main_shader.set_3float("lightPos", lightx, lighty, lightz)
         glClearColor(0.2, 0.2, 0.2, 1.0)
 
-
         if polygonal_mode:
             glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
         else:
@@ -190,27 +189,31 @@ def main():
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 
-        
-        # Send view and projection matrices
+        # Create view and projection matrices
         mat_view = Matrix.view(cameraPos, cameraFront, cameraUp)
         mat_projection = Matrix.projection(1200, 900)
+
+        # Draw the skybox
+        env.skybox_shader.use()
+        new_view = np.zeros((4,4))
+        new_view[:3, :3] = mat_view[:3, :3]
+        env.skybox_shader.set_mat4("view", new_view)
+        env.skybox_shader.set_mat4("projection", mat_projection)
+        env.skybox_obj.draw_obj(env.get_program())
+
+        # Send main shader matrices
+        env.main_shader.use()
         env.main_shader.set_mat4("view", mat_view)
         env.main_shader.set_mat4("projection", mat_projection)
         env.main_shader.set_3float("viewPos", cameraPos[0], cameraPos[1], cameraPos[2])
 
-        # Get All Objects
+        # Render all objects
         list_obj = env.get_list_objects()
         loc_model = glGetUniformLocation(env.get_program(), "model")
         for obj_to_render in list_obj:
             obj_model_matrix = obj_to_render.get_matrix()
             glUniformMatrix4fv(loc_model, 1, GL_FALSE, obj_model_matrix)
             obj_to_render.draw_obj(env.get_program())
-
-        env.skybox_shader.use()
-        env.skybox_shader.set_mat4("view", mat_view)
-        env.skybox_shader.set_mat4("projection", mat_projection)
-        
-        env.skybox_obj.draw_obj(env.get_program())
 
         glfw.swap_buffers(env.window)
 
