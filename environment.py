@@ -13,109 +13,10 @@ from objhelper import ObjHelper
 from logger_helper import LoggerHelper
 from matrix import Matrix
 from skybox import Skybox
+from shader import Shader
 
 logger = LoggerHelper.get_logger(__name__)
 offset = ctypes.c_void_p(0)
-
-
-vertex_code = """
-        attribute vec3 position;
-        attribute vec2 texture_coord;
-        attribute vec3 normals;
-        
-       
-        varying vec2 out_texture;
-        varying vec3 out_fragPos;
-        varying vec3 out_normal;
-                
-        uniform mat4 model;
-        uniform mat4 view;
-        uniform mat4 projection;        
-        
-        void main(){
-            gl_Position = projection * view * model * vec4(position,1.0);
-            out_texture = vec2(texture_coord);
-            out_fragPos = vec3(  model * vec4(position, 1.0));
-            out_normal = vec3( model *vec4(normals, 1.0));            
-        }
-        """
-
-fragment_code = """
-
-        // parametro com a cor da(s) fonte(s) de iluminacao
-        uniform vec3 lightPos; // define coordenadas de posicao da luz
-        vec3 lightColor = vec3(1.0, 1.0, 1.0);
-        
-        // parametros da iluminacao ambiente e difusa
-        uniform float ka; // coeficiente de reflexao ambiente
-        uniform float kd; // coeficiente de reflexao difusa
-        
-        // parametros da iluminacao especular
-        uniform vec3 viewPos; // define coordenadas com a posicao da camera/observador
-        uniform float ks; // coeficiente de reflexao especular
-        uniform float ns; // expoente de reflexao especular
-
-        // parametros recebidos do vertex shader
-        varying vec2 out_texture; // recebido do vertex shader
-        varying vec3 out_normal; // recebido do vertex shader
-        varying vec3 out_fragPos; // recebido do vertex shader
-        uniform sampler2D samplerTexture;
-        
-        void main(){
-        
-            // calculando reflexao ambiente
-            vec3 ambient = ka * lightColor;             
-        
-            // calculando reflexao difusa
-            vec3 norm = normalize(out_normal); // normaliza vetores perpendiculares
-            vec3 lightDir = normalize(lightPos - out_fragPos); // direcao da luz
-            float diff = max(dot(norm, lightDir), 0.0); // verifica limite angular (entre 0 e 90)
-            vec3 diffuse = kd * diff * lightColor; // iluminacao difusa
-            
-            // calculando reflexao especular
-            vec3 viewDir = normalize(viewPos - out_fragPos); // direcao do observador/camera
-            vec3 reflectDir = normalize(reflect(-lightDir, norm)); // direcao da reflexao
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), ns);
-            
-            vec3 specular = ks * spec * lightColor;             
-            
-            // aplicando o modelo de iluminacao
-            vec4 texture = texture2D(samplerTexture, out_texture);
-            vec4 result = vec4((ambient + diffuse + specular),1.0) * texture; // aplica iluminacao
-            gl_FragColor = result;
-
-        }
-        """
-
-skybox_vertex_shader_1 = """
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-
-    out vec3 TexCoords;
-
-    uniform mat4 projection;
-    uniform mat4 view;
-
-    void main()
-    {
-        TexCoords = aPos;
-        gl_Position = projection * view * vec4(aPos, 1.0);
-    }
-"""
-
-skybox_vertex_shader_2 = """
-#version 330 core
-out vec4 FragColor;
-
-in vec3 TexCoords;
-
-uniform samplerCube skybox;
-
-void main()
-{    
-    FragColor = texture(skybox, TexCoords);
-}
-"""
 
 
 class Environment:
@@ -130,6 +31,7 @@ class Environment:
     obj_list: list[GLObject]
     list_vertices: list
     list_texture: list
+    skybox_obj: GLObject
 
     def __init__(self, x=600, y=480):
         self.n_objects = 0
@@ -145,29 +47,10 @@ class Environment:
         glfw.make_context_current(self.window)
 
         # Request a program and shader slots from GPU
-        self.program  = glCreateProgram()
-        vertex   = glCreateShader(GL_VERTEX_SHADER)
-        fragment = glCreateShader(GL_FRAGMENT_SHADER)
+        self.main_shader = Shader('shaders/main_shader_vs', 'shaders/main_shader_fs')
+        self.main_shader.use()
 
-        # Set shaders source
-        glShaderSource(vertex, vertex_code)
-        glShaderSource(fragment, fragment_code)
-
-        self.compile_shader(vertex)
-        self.compile_shader(fragment)
-
-        # Attach shader objects to the program
-        glAttachShader(self.program, vertex)
-        glAttachShader(self.program, fragment)
-
-        # Build program
-        glLinkProgram(self.program)
-        if not glGetProgramiv(self.program, GL_LINK_STATUS):
-            logger.error(glGetProgramInfoLog(self.program))
-            raise RuntimeError('Linking error')
-
-        # Make program the default program
-        glUseProgram(self.program)
+        self.skybox_shader = Shader('shaders/skybox_shader_vs', 'shaders/skybox_shader_fs')
 
         # Init textures
         glEnable(GL_TEXTURE_2D)
@@ -175,33 +58,32 @@ class Environment:
         # textures = glGenTextures(qtd_texturas)
 
         # Request a buffer slot from GPU
-        self.buffer = glGenBuffers(4)
+        self.buffer = glGenBuffers(5)
         self.buffer_counter = 0
         # Make this buffer the default one
 
-        self.loc = glGetAttribLocation(self.program, "position")
+        self.loc = glGetAttribLocation(self.main_shader.ID, "position")
         glEnableVertexAttribArray(self.loc)
 
-        self.texture_loc = glGetAttribLocation(self.program, "texture_coord")
+        self.texture_loc = glGetAttribLocation(self.main_shader.ID, "texture_coord")
         glEnableVertexAttribArray(self.texture_loc)
 
-        self.normal_loc = glGetAttribLocation(self.program, "normals")
+        self.normal_loc = glGetAttribLocation(self.main_shader.ID, "normals")
         glEnableVertexAttribArray(self.normal_loc)
 
-        loc_ka = glGetUniformLocation(self.program, "ka") # recuperando localizacao da variavel ka na GPU
+        loc_ka = glGetUniformLocation(self.main_shader.ID, "ka") # recuperando localizacao da variavel ka na GPU
         glUniform1f(loc_ka, 0.5) ### envia ka pra gpu
         
-        loc_kd = glGetUniformLocation(self.program, "kd") # recuperando localizacao da variavel ka na GPU
+        loc_kd = glGetUniformLocation(self.main_shader.ID, "kd") # recuperando localizacao da variavel ka na GPU
         glUniform1f(loc_kd, 0.5) ### envia kd pra gpu 
 
-        loc_light_pos = glGetUniformLocation(self.program, "lightPos") # recuperando localizacao da variavel lightPos na GPU
+        loc_light_pos = glGetUniformLocation(self.main_shader.ID, "lightPos") # recuperando localizacao da variavel lightPos na GPU
         glUniform3f(loc_light_pos, -1.5, 1.7, 2.5) ### posicao da fonte de luz
 
         glEnable(GL_DEPTH_TEST) 
         
         self.show_window()
-
-
+        
     @staticmethod
     def compile_shader(shader):
         # Compile shaders
@@ -215,7 +97,7 @@ class Environment:
         return self.window
 
     def get_program(self):
-        return self.program
+        return self.main_shader.ID
 
     def get_loc(self):
         return self.loc
@@ -250,11 +132,12 @@ class Environment:
     def add_skybox(self, obj: Skybox):
         obj.start = self.total_vertices
 
-        print(obj.vertices)
         for v in obj.vertices['position']:
             self.list_vertices.append(v)
 
-        self.obj_list.append(obj)
+        logger.info(f'{obj.start}, {obj.n_vertices}')
+        
+        self.skybox_obj = obj
         self.total_vertices += obj.n_vertices
         self.n_objects += 1
 

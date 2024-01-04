@@ -116,30 +116,26 @@ def main():
     env.set_mouse_callback(mouse_event)
     window = env.get_window()
 
-    loc = env.get_loc()
-    # Adding objects
-
-
-    loc_model = glGetUniformLocation(env.get_program(), "model")
-    
-    box = GLObject('caixa')
-    box.set_lightning(0.7, 0.5, 0.1, 0.1)
-    box.init_obj()
-    env.add_object(box)
+    # box = GLObject('caixa')
+    # box.set_lightning(0.7, 0.5, 0.1, 0.1)
+    # box.init_obj()
+    # env.add_object(box)
 
     box2 = GLObject('caixa', t_x=3, t_y=3)
-    box2.set_lightning(0.7, 0.5, 0.3, 0.4)
+    box2.set_lightning(0.3, 0.3, 0.4, 0.4)
     box2.init_obj()
     env.add_object(box2)
 
     sphere = GLObject('sphere', t_x=-5)
-    sphere.set_lightning(0.7, 0.5, 0.5, 0.1)
+    sphere.set_lightning(0.3, 0.5, 0.5, 1)
     sphere.init_obj()
     env.add_object(sphere)
 
-    # skybox = Skybox('skybox')
-    # skybox.init_obj('cube')
-    # env.add_skybox(skybox)
+    skybox = Skybox('skybox')
+    skybox.set_lightning(1, 1, 1, 1)
+    skybox.init_obj('cube')
+    env.add_skybox(skybox)
+    
     # skybox.draw_obj()
 
     # basset = GLObject('basset')
@@ -152,6 +148,7 @@ def main():
     # env.add_object(container)
 
     # coffee = GLObject('coffee')
+    # coffee.set_lightning(0.8, 1, 0.4, 0.3)
     # coffee.init_obj()
     # env.add_object(coffee)
     # coffee.draw_obj()
@@ -169,7 +166,6 @@ def main():
     for obj in env.get_list_objects():
         logger.info(obj)
 
-
     env.send_vertices()
     env.send_texture()
 
@@ -177,8 +173,8 @@ def main():
         glfw.poll_events() 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        loc_light_pos = glGetUniformLocation(env.get_program(), "lightPos") 
-        glUniform3f(loc_light_pos, lightx, lighty, lightz)
+        env.main_shader.use()
+        env.main_shader.set_3float("lightPos", lightx, lighty, lightz)
         glClearColor(0.2, 0.2, 0.2, 1.0)
 
 
@@ -194,31 +190,27 @@ def main():
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 
+        
+        # Send view and projection matrices
+        mat_view = Matrix.view(cameraPos, cameraFront, cameraUp)
+        mat_projection = Matrix.projection(1200, 900)
+        env.main_shader.set_mat4("view", mat_view)
+        env.main_shader.set_mat4("projection", mat_projection)
+        env.main_shader.set_3float("viewPos", cameraPos[0], cameraPos[1], cameraPos[2])
+
         # Get All Objects
         list_obj = env.get_list_objects()
-        
-        loc = env.get_loc()
-
-        # Use model matrix to render objects
         loc_model = glGetUniformLocation(env.get_program(), "model")
-        print(len(list_obj))
         for obj_to_render in list_obj:
             obj_model_matrix = obj_to_render.get_matrix()
-            print(obj_to_render, obj_model_matrix)
             glUniformMatrix4fv(loc_model, 1, GL_FALSE, obj_model_matrix)
             obj_to_render.draw_obj(env.get_program())
 
-        # Send view and projection matrices        
-        mat_view = Matrix.view(cameraPos, cameraFront, cameraUp)
-        loc_view = glGetUniformLocation(env.get_program(), "view")
-        glUniformMatrix4fv(loc_view, 1, GL_TRUE, mat_view)
-
-        mat_projection = Matrix.projection(1200, 900)
-        loc_projection = glGetUniformLocation(env.get_program(), "projection")
-        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, mat_projection)  
-
-        loc_view_pos = glGetUniformLocation(env.get_program(), "viewPos") # recuperando localizacao da variavel viewPos na GPU
-        glUniform3f(loc_view_pos, cameraPos[0], cameraPos[1], cameraPos[2]) ### posicao da camera/observador (x,y,z)
+        env.skybox_shader.use()
+        env.skybox_shader.set_mat4("view", mat_view)
+        env.skybox_shader.set_mat4("projection", mat_projection)
+        
+        env.skybox_obj.draw_obj(env.get_program())
 
         glfw.swap_buffers(env.window)
 

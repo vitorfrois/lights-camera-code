@@ -11,7 +11,7 @@ from logger_helper import LoggerHelper
 from objhelper import ObjHelper
 
 
-TEXTURES_EXT = ["tif", "jpg", "png"]
+TEXTURES_EXT = ["tif", "jpg", "png", "jpeg"]
 logger = LoggerHelper.get_logger(__name__)
 offset = ctypes.c_void_p(0)
 

@@ -77,6 +77,7 @@ class ObjHelper:
         img_width = img.size[0]
         img_height = img.size[1]
         img_format = GL_RGB if img.mode == "RGB" else GL_RGBA
+        img = img.convert('RGB')
         image_data = img.tobytes("raw", "RGB", 0, -1)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img_width, img_height, 0, img_format, GL_UNSIGNED_BYTE, image_data)
         glGenerateMipmap(GL_TEXTURE_2D)
