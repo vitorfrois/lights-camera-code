@@ -67,9 +67,8 @@ def key_event(window,key,scancode,action,mods):
         linear_magnification = not linear_magnification
 
     if key == 76 and action == GLFW_PRESS:
-        lightx *= -1
-        lighty *= -1
-        lightz *= -1
+        lightx = -10
+
 
     # info_message = f"Pressed key: {key}"
     # logging.info(info_message)
@@ -142,10 +141,10 @@ def main():
     # basset.init_obj()
     # env.add_object(basset)
 
-    # container = GLObject('container')
-    # container.set_lightning(0.8, 1, 0.4, 0.3)
-    # container.init_obj()
-    # env.add_object(container)
+    container = GLObject('container', s_x=0.1, s_y=0.1, s_z=0.1)
+    container.set_lightning(0.8, 1, 0.4, 0.3)
+    container.init_obj()
+    env.add_object(container)
 
     # coffee = GLObject('coffee')
     # coffee.set_lightning(0.8, 1, 0.4, 0.3)
