@@ -37,15 +37,19 @@ linear_magnification = True
 object_selection = 1
 
 cameraPos   = glm.vec3(0.0,  0.0,  1.0)
-cameraFront = glm.vec3(0.0,  0.0, -1.0)
+cameraFront = glm.vec3(0.0,  0.0,  1.0)
 cameraUp    = glm.vec3(0.0,  1.0,  0.0)
 
 lightx = 10.0
 lighty = 10.0
 lightz = 10.0
 
+GRAVITY = 0.8
+y_velocity = 0
+
 def key_event(window,key,scancode,action,mods):
-    global cameraPos, cameraFront, cameraUp, polygonal_mode, lightx, lighty, lightz
+    global cameraPos, cameraFront, cameraUp, polygonal_mode 
+    global lightx, lighty, lightz, y_velocity, GRAVITY, camera_pos_y
     
     cameraSpeed = 0.5
     if key == 87: # tecla W
@@ -67,9 +71,12 @@ def key_event(window,key,scancode,action,mods):
         linear_magnification = not linear_magnification
 
     if key == 76 and action == GLFW_PRESS:
-        lightx = -10
-
-
+        lightx *= -1
+    
+    if key == 32 and action == GLFW_PRESS:
+        y_velocity = 8
+        print('space!')
+    
     # info_message = f"Pressed key: {key}"
     # logging.info(info_message)
 
@@ -115,52 +122,42 @@ def main():
     env.set_mouse_callback(mouse_event)
     window = env.get_window()
 
-    # box = GLObject('caixa')
-    # box.set_lightning(0.7, 0.5, 0.1, 0.1)
-    # box.init_obj()
-    # env.add_object(box)
+    box = GLObject('caixa')
+    box.set_lightning(0.8, 0.8, 0.5, 1)
+    box.init_obj()
+    env.add_object(box)
 
     box2 = GLObject('caixa', t_x=3, t_y=3)
-    box2.set_lightning(0.3, 0.3, 0.4, 0.4)
+    box2.set_lightning(0.8, 0.3, 0.4, 0.4)
     box2.init_obj()
     env.add_object(box2)
 
     sphere = GLObject('sphere', t_x=-5)
-    sphere.set_lightning(0.3, 0.5, 0.5, 1)
+    sphere.set_lightning(0.8, 1, 0.1, 0.1)
     sphere.init_obj()
     env.add_object(sphere)
+
+    sphere = GLObject('sphere', t_x=-5, t_z=-10)
+    sphere.set_lightning(0.8, 0.3, 0.8, 0.8)
+    sphere.init_obj()
+    env.add_object(sphere)
+
+    container = GLObject('container', s_x=0.05, s_y=0.05, s_z=0.05, t_x=20, t_z=20)
+    container.set_lightning(0.8, 1, 0.4, 0.3)
+    container.init_obj()
+    env.add_object(container)
 
     skybox = Skybox('skybox')
     skybox.set_lightning(1, 1, 1, 1)
     skybox.init_obj('cube')
     env.add_skybox(skybox)
-    
-    # skybox.draw_obj()
-
-    # basset = GLObject('basset')
-    # basset.init_obj()
-    # env.add_object(basset)
-
-    container = GLObject('container', s_x=0.1, s_y=0.1, s_z=0.1)
-    container.set_lightning(0.8, 1, 0.4, 0.3)
-    container.init_obj()
-    env.add_object(container)
-
-    # coffee = GLObject('coffee')
-    # coffee.set_lightning(0.8, 1, 0.4, 0.3)
-    # coffee.init_obj()
-    # env.add_object(coffee)
-    # coffee.draw_obj()
-
-    # monstro = GLObject('monstro')
-    # monstro.init_obj()
-    # env.add_object(monstro)
 
     global x_inc, y_inc, yr_inc, zr_inc, s_inc
     global object_selection
     global list_obj
     global polygonal_mode
     global linear_magnification
+    global y_velocity, GRAVITY
 
     for obj in env.get_list_objects():
         logger.info(obj)
@@ -216,7 +213,30 @@ def main():
 
         glfw.swap_buffers(env.window)
 
-        logger.info(cameraPos)
+        cameraPos.y += y_velocity
+        y_velocity -= GRAVITY
+
+        print(f'y_velocity: {y_velocity}; CameraY: {cameraPos.y}')
+
+        if cameraPos.y < 1:
+            cameraPos.y = 1
+            y_velocity = 0
+
+        if cameraPos.z > 100:
+            cameraPos.z = 100
+
+        if cameraPos.z < -100:
+            cameraPos.z = - 100
+
+        if cameraPos.x > 100:
+            cameraPos.x = 100
+
+        if cameraPos.x < -100:
+            cameraPos.x = - 100
+
+
+
+        # logger.info(cameraPos)
 
     glfw.terminate()
 

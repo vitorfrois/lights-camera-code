@@ -97,7 +97,7 @@ class GLObject:
                 break
             except FileNotFoundError:
                 logger.error(f"Did not found {extension} texture file")
-
+                
         self.init_vertices(self.list_vertices)
         self.init_texture(self.list_texture)
         self.init_normals(self.list_normals)
